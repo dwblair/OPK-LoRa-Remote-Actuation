@@ -1,4 +1,4 @@
-// Crochet
+#include <EEPROM.h>
 #include <PacketCommand.h>
 #include <RHReliableDatagram.h>
 #include <RH_RF95.h>
@@ -19,7 +19,7 @@
 #define moteinoLED 9   // Arduino LED on board
 
 //Serial Interface for Testing over FDTI
-SerialCommand sCmd(Serial);
+SerialCommand sCmd_USB(Serial);
 
 #define PACKETCOMMAND_MAX_COMMANDS 20
 #define PACKETCOMMAND_INPUT_BUFFER_SIZE 32
@@ -45,22 +45,31 @@ void setup() {
   Serial.begin(115200);
 
   // Setup callbacks for SerialCommand commands
-  sCmd.addCommand("LED.ON",      LED_ON_sCmd_handler);          // Turns LED on
-  sCmd.addCommand("LED.OFF",     LED_OFF_sCmd_handler);         // Turns LED off
-  sCmd.addCommand("FREQ1.READ?", FREQ1_READ_sCmd_handler);         // reads input frequency
-  sCmd.setDefaultHandler(UNRECOGNIZED_sCmd_handler);      // Handler for command that isn't matched  (says "What?")
+  sCmd_USB.addCommand("FREQ1.READ?",   FREQ1_READ_sCmd_query_handler);       // reads input frequency on pin 5
+  sCmd_USB.addCommand("DIGITAL.READ?", DIGITAL_READ_sCmd_query_handler);
+  sCmd_USB.addCommand("DIGITAL.WRITE", DIGITAL_WRITE_sCmd_action_handler);
+  sCmd_USB.addCommand("LED?",          LED_sCmd_query_handler);
+  sCmd_USB.addCommand("LED.ON",        LED_ON_sCmd_action_handler);          // Turns LED on
+  sCmd_USB.addCommand("LED.OFF",       LED_OFF_sCmd_action_handler);         // Turns LED off
+  // Serial commands for non-volatile configuration (EEPROM)
+  sCmd_USB.addCommand("EEPROM.READ?", EEPROM_READ_sCmd_query_handler);
+  sCmd_USB.addCommand("EEPROM.WRITE", EEPROM_WRITE_sCmd_action_handler);
+  sCmd_USB.setDefaultHandler(UNRECOGNIZED_sCmd_handler);      // Handler for command that isn't matched  (says "What?")
   #ifdef DEBUG
   DEBUG_PORT.println(F("# SerialCommand Ready"));
   #endif
   
   // Setup callbacks and command for PacketCommand interface
   // Setup callbacks for PacketCommand actions and queries
-  pCmd_RHRD.addCommand((byte*) "\xFF\x11","FREQ1.READ?", FREQ1_READ_pCmd_query_handler);
+  pCmd_RHRD.addCommand((byte*) "\xFF\x11","FREQ1.READ?",    FREQ1_READ_pCmd_query_handler);
+  pCmd_RHRD.addCommand((byte*) "\xFF\x21","DIGITAL.READ?",  DIGITAL_READ_pCmd_query_handler);
+  pCmd_RHRD.addCommand((byte*) "\xFF\x22","DIGITAL.WRITE",  DIGITAL_WRITE_pCmd_action_handler);
   pCmd_RHRD.addCommand((byte*) "\xFF\x40","LED?",        LED_pCmd_query_handler);
   pCmd_RHRD.addCommand((byte*) "\xFF\x41","LED.ON",      LED_ON_pCmd_action_handler);            // Turns LED on   ("\x41" == "A")
   pCmd_RHRD.addCommand((byte*) "\xFF\x42","LED.OFF",     LED_OFF_pCmd_action_handler);           // Turns LED off  ("
-  //Setup callbacks for PacketCommand replies
+  //Setup type IDs for PacketCommand replies
   pCmd_RHRD.addCommand((byte*) "\x11","FREQ1!",          NULL);
+  pCmd_RHRD.addCommand((byte*) "\x21","DIGITAL!",        NULL);
   pCmd_RHRD.addCommand((byte*) "\x40","LED!",            NULL);
   //pCmd.registerDefaultHandler(unrecognized);                          // Handler for command that isn't matched  (says "What?")
   pCmd_RHRD.registerRecvCallback(pCmd_RHRD_recv_callback);
@@ -80,9 +89,9 @@ void setup() {
 // Main Loop
 
 void loop() {
-  int num_bytes = sCmd.readSerial();      // fill the buffer
+  int num_bytes = sCmd_USB.readSerial();      // fill the buffer
   if (num_bytes > 0){
-    sCmd.processCommand();  // process the command
+    sCmd_USB.processCommand();  // process the command
   }
 
   //process incoming radio packets
@@ -94,23 +103,97 @@ void loop() {
 //******************************************************************************
 // SerialCommand handlers
 
-void FREQ1_READ_sCmd_handler(SerialCommand this_sCmd) {
+void FREQ1_READ_sCmd_query_handler(SerialCommand this_sCmd) {
  if (FreqCount.available()) {
     unsigned long count = FreqCount.read();
     this_sCmd.println(count);
   }
 }
 
-void LED_ON_sCmd_handler(SerialCommand this_sCmd) {
+void DIGITAL_READ_sCmd_query_handler(SerialCommand this_sCmd){
+  int pin;
+  bool value;
+  char *arg = this_sCmd.next();
+  if (arg == NULL){
+    this_sCmd.print(F("### Error: DIGITAL.READ requires 1 argument (int pin)\n"));
+  }
+  else{
+    pin = atoi(arg);
+    value = digitalRead(pin);
+    this_sCmd.print(value);
+    this_sCmd.print('\n');
+  }
+}
+
+void DIGITAL_WRITE_sCmd_action_handler(SerialCommand this_sCmd){
+  int pin;
+  bool value;
+  char *arg = this_sCmd.next();
+  if (arg == NULL){
+    this_sCmd.print(F("### Error: DIGITAL.WRITE requires 2 arguments (int pin, byte value), none given\n"));
+  }
+  else{
+    pin = atoi(arg);
+    arg = this_sCmd.next();
+    if (arg == NULL){
+        this_sCmd.print(F("### Error: DIGITAL.WRITE requires 2 arguments (int pin, byte value), 1 given\n"));
+    }
+    else{
+        value = atoi(arg);
+        digitalWrite(pin, value);
+    }
+  }
+}
+
+void LED_sCmd_query_handler(SerialCommand this_sCmd) {
+  bool led_state = digitalRead(moteinoLED);
+  this_sCmd.println(led_state);
+}
+
+void LED_ON_sCmd_action_handler(SerialCommand this_sCmd) {
   this_sCmd.println(F("# LED on"));
   digitalWrite(moteinoLED, HIGH);
 }
 
-void LED_OFF_sCmd_handler(SerialCommand this_sCmd) {
+void LED_OFF_sCmd_action_handler(SerialCommand this_sCmd) {
   this_sCmd.println(F("# LED off"));
   digitalWrite(moteinoLED, LOW);
 }
 
+void EEPROM_READ_sCmd_query_handler(SerialCommand this_sCmd){
+  int addr;
+  byte data;
+  char *arg = this_sCmd.next();
+  if (arg == NULL){
+    this_sCmd.print(F("### Error: EEPROM.READ requires 1 argument (int addr)\n"));
+  }
+  else{
+    addr = atoi(arg);
+    data = EEPROM.read(addr);
+    this_sCmd.print(data);
+    this_sCmd.print('\n');
+  }
+}
+
+void EEPROM_WRITE_sCmd_action_handler(SerialCommand this_sCmd){
+  int addr;
+  byte value;
+  char *arg = this_sCmd.next();
+  if (arg == NULL){
+    this_sCmd.print(F("### Error: EEPROM.WRITE requires 2 arguments (int addr, byte value), none given\n"));
+  }
+  else{
+    addr = atoi(arg);
+    arg = this_sCmd.next();
+    if (arg == NULL){
+        this_sCmd.print(F("### Error: EEPROM.WRITE requires 2 arguments (int addr, byte value), 1 given\n"));
+    }
+    else{
+        value = atoi(arg);
+        EEPROM.write(addr, value);
+    }
+  }
+}
 
 // This gets set as the default handler, and gets called when no other command matches.
 void UNRECOGNIZED_sCmd_handler(SerialCommand this_sCmd) {
@@ -129,6 +212,32 @@ void FREQ1_READ_pCmd_query_handler(PacketCommand& this_pCmd) {
     this_pCmd.pack_uint32(count);
     this_pCmd.send();
   }
+}
+
+void DIGITAL_READ_pCmd_query_handler(PacketCommand& this_pCmd){
+  #if defined(DEBUG)
+  DEBUG_PORT.println(F("# DIGITAL_READ_pCmd_query_handler"));
+  #endif
+  uint8_t pin;
+  this_pCmd.unpack_uint8(pin);
+  bool value = digitalRead(pin);
+  //construct reply packet
+  this_pCmd.resetOutputBuffer();
+  this_pCmd.setupOutputCommandByName("DIGITAL!");
+  this_pCmd.pack_byte((byte) value);
+  this_pCmd.send();
+}
+
+void DIGITAL_WRITE_pCmd_action_handler(PacketCommand& this_pCmd){
+  #if defined(DEBUG)
+  DEBUG_PORT.println(F("# DIGITAL_WRITE_pCmd_action_handler"));
+  #endif
+  uint8_t pin;
+  this_pCmd.unpack_uint8(pin);
+  bool value;
+  this_pCmd.unpack_byte((byte&) value);
+  //complete the action
+  digitalWrite(pin, value);
 }
 
 void LED_pCmd_query_handler(PacketCommand& this_pCmd) {
