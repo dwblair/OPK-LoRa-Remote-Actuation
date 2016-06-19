@@ -16,11 +16,14 @@
 
 //******************************************************************************
 // Setup
+
 #define PCMD_RHRD_DEFAULT_FREQUENCY 915
+#define PCMD_RHRD_DEFAULT_TX_POWER 23
 #define PCMD_RHRD_DEFAULT_NUM_RETRIES 10
 
 void pCmd_RHRD_module_setup(uint8_t this_address,
                             unsigned int radio_frequency,
+                            unsigned int tx_power,
                             unsigned int num_retries);
 
 //******************************************************************************

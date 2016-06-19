@@ -9,31 +9,69 @@
 #endif
 
 //Radio interface for field communication
-RH_RF95 driver_RF95;
+#if defined(ARDUINO_SAMD_ZERO)
+//settings for feather m0
+#define RFM95_CS 8
+#define RFM95_RST 4
+#define RFM95_INT 3
+RH_RF95 driver_RF95(RFM95_CS, RFM95_INT);
+#else
+RH_RF95 driver_RF95();
+#endif
 
 // Class to manage message delivery and receipt, using the driver declared above
 RHReliableDatagram manager_RHRD(driver_RF95);
 
 //******************************************************************************
 // Setup
-void pCmd_RHRD_module_setup(uint8_t this_address,
+void pCmd_RHRD_module_setup(uint8_t      this_address,
                             unsigned int radio_frequency,
+                            unsigned int tx_power,
                             unsigned int num_retries
                             ){
-  //Bring up the Radio
+  // Bring up the Radio
+  #ifdef DEBUG
+  DEBUG_PORT.print(F("# pCmd_RHRD_module_setup\n"));
+  #endif
+  #if defined(ARDUINO_SAMD_ZERO)
+  // reset sequence needed for feather m0
+  pinMode(RFM95_RST, OUTPUT);
+  digitalWrite(RFM95_RST, HIGH);
+  delay(100);
+  digitalWrite(RFM95_RST, LOW);
+  delay(10);
+  digitalWrite(RFM95_RST, HIGH);
+  delay(10);
+  #endif
   manager_RHRD.setThisAddress(this_address);
   manager_RHRD.setRetries(num_retries);
+  #ifdef DEBUG
+  DEBUG_PORT.print(F("# \tattemping to initialize radio driver...\n"));
+  #endif
   if (!manager_RHRD.init()){
     #ifdef DEBUG
-    DEBUG_PORT.print(F("# RHRD init failed\n"));
+    DEBUG_PORT.print(F("# \tRHRD init failed!\n"));
     #endif
   }
   else {
-    driver_RF95.setFrequency(radio_frequency);
+    // Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM
+    // Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
+    // If you are using RFM95/96/97/98 modules which uses the PA_BOOST 
+    // transmitter pin, then you can set transmitter powers from 5 to 23 dBm
     #ifdef DEBUG
-    DEBUG_PORT.print(F("# rf95 init OK - "));
+    DEBUG_PORT.print(F("# \tsetting frequency:"));
     DEBUG_PORT.print(radio_frequency);
-    DEBUG_PORT.print(F("mhz\n"));
+    DEBUG_PORT.println(F("mhz\n"));
+    #endif
+    driver_RF95.setFrequency(radio_frequency);
+    tx_power = constrain(tx_power, 5, 23);
+    #ifdef DEBUG
+    DEBUG_PORT.print(F("# \tsetting tx_power:"));
+    DEBUG_PORT.println(tx_power);
+    #endif
+    driver_RF95.setTxPower(tx_power);
+    #ifdef DEBUG
+    DEBUG_PORT.println(F("# rf95 init OK"));
     #endif
   }
 }
