@@ -32,12 +32,38 @@ PacketCommand pCmd_RHRD(PACKETCOMMAND_MAX_COMMANDS,
 
 #define BASESTATION_ADDRESS 1
 #define DEFAULT_REMOTE_ADDRESS 2
+
+void rgb_led(uint8_t r, uint8_t g, uint8_t b){
+  analogWrite(5 ,r);
+  analogWrite(10,g);
+  analogWrite(11,b);
+}
 //******************************************************************************
 // Setup
 void setup() {
   pinMode(LED_pin, OUTPUT);      // Configure the onboard LED for output
 
   //FreqCount.begin(1000); //this is the gateing interval/duration of measurement
+  //setup PWM pins for RGB LED
+  pinMode(5,OUTPUT);
+  pinMode(10,OUTPUT);
+  pinMode(11,OUTPUT);
+  rgb_led(255,0,0);   //red
+  delay(250);
+  rgb_led(0,255,0);   //green
+  delay(250);
+  rgb_led(0,0,255);   //blue
+  delay(250);
+  rgb_led(0,255,255); //cyan
+  delay(250);
+  rgb_led(255,0,255); //magenta
+  delay(250);
+  rgb_led(255,255,0); //yellow
+  delay(250);
+  rgb_led(255,255,255); //white
+  delay(250);
+  rgb_led(0,0,0); //off
+  
   
   Serial.begin(115200);
 
@@ -253,14 +279,19 @@ void LED_pCmd_query_handler(PacketCommand& this_pCmd) {
 }
 
 void LED_ON_pCmd_action_handler(PacketCommand& this_pCmd) {
-  //Serial.println(F("LED on"));
-  digitalWrite(LED_pin, HIGH);
-  LED_state = HIGH;
+  PacketCommand::InputProperties input_props = this_pCmd.getInputProperties();
+  if(input_props.RSSI > -75){        //strong signal
+    rgb_led(0,255,0); //green
+  } else if(input_props.RSSI > -85){ //acceptable signal
+    rgb_led(0,0,255); //blue
+  } else if(input_props.RSSI > -95){ //marginal signal
+    rgb_led(255,255,0); //yellow
+  } else{                            //very low or no signal
+    rgb_led(255,0,0); //red
+  }
 }
 
 void LED_OFF_pCmd_action_handler(PacketCommand& this_pCmd) {
-  //Serial.println(F("LED off"));
-  digitalWrite(LED_pin, LOW);
-  LED_state = LOW;
+  rgb_led(0,0,0); //off
 }
 
