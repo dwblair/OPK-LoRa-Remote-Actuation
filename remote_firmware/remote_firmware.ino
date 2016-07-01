@@ -16,9 +16,14 @@
   #define DEBUG_PORT Serial
 #endif
 
+
+
 #define LED_pin 13   /* Arduino LED on board */
 //#define LED_pin 9    /* Moteino LED on board */
+
 bool LED_state = LOW;
+
+
 
 //Serial Interface for Testing over FDTI
 SerialCommand sCmd_USB(Serial);
@@ -42,7 +47,6 @@ void rgb_led(uint8_t r, uint8_t g, uint8_t b){
 // Setup
 void setup() {
   pinMode(LED_pin, OUTPUT);      // Configure the onboard LED for output
-
   //FreqCount.begin(1000); //this is the gateing interval/duration of measurement
   //setup PWM pins for RGB LED
   pinMode(5,OUTPUT);
@@ -71,6 +75,8 @@ void setup() {
   //sCmd_USB.addCommand("FREQ1.READ?",   FREQ1_READ_sCmd_query_handler);       // reads input frequency on pin 5
   sCmd_USB.addCommand("DIGITAL.READ?", DIGITAL_READ_sCmd_query_handler);
   sCmd_USB.addCommand("DIGITAL.WRITE", DIGITAL_WRITE_sCmd_action_handler);
+  sCmd_USB.addCommand("ANALOG.READ?",  ANALOG_READ_sCmd_query_handler);
+  sCmd_USB.addCommand("ANALOG.WRITE",  ANALOG_WRITE_sCmd_action_handler);
   sCmd_USB.addCommand("LED?",          LED_sCmd_query_handler);
   sCmd_USB.addCommand("LED.ON",        LED_ON_sCmd_action_handler);          // Turns LED on
   sCmd_USB.addCommand("LED.OFF",       LED_OFF_sCmd_action_handler);         // Turns LED off
@@ -87,12 +93,15 @@ void setup() {
   //pCmd_RHRD.addCommand((byte*) "\xFF\x11","FREQ1.READ?",    FREQ1_READ_pCmd_query_handler);
   pCmd_RHRD.addCommand((byte*) "\xFF\x21","DIGITAL.READ?",  DIGITAL_READ_pCmd_query_handler);
   pCmd_RHRD.addCommand((byte*) "\xFF\x22","DIGITAL.WRITE",  DIGITAL_WRITE_pCmd_action_handler);
+  pCmd_RHRD.addCommand((byte*) "\xFF\x23","ANALOG.READ?",   ANALOG_READ_pCmd_query_handler);
+  pCmd_RHRD.addCommand((byte*) "\xFF\x24","ANALOG.WRITE",   ANALOG_WRITE_pCmd_action_handler);
   pCmd_RHRD.addCommand((byte*) "\xFF\x40","LED?",        LED_pCmd_query_handler);
   pCmd_RHRD.addCommand((byte*) "\xFF\x41","LED.ON",      LED_ON_pCmd_action_handler);            // Turns LED on   ("\x41" == "A")
   pCmd_RHRD.addCommand((byte*) "\xFF\x42","LED.OFF",     LED_OFF_pCmd_action_handler);           // Turns LED off  ("
   //Setup type IDs for PacketCommand replies
   pCmd_RHRD.addCommand((byte*) "\x11","FREQ1!",          NULL);
   pCmd_RHRD.addCommand((byte*) "\x21","DIGITAL!",        NULL);
+  pCmd_RHRD.addCommand((byte*) "\x23","ANALOG!",         NULL);
   pCmd_RHRD.addCommand((byte*) "\x40","LED!",            NULL);
   //pCmd.registerDefaultHandler(unrecognized);                          // Handler for command that isn't matched  (says "What?")
   pCmd_RHRD.registerRecvCallback(pCmd_RHRD_recv_callback);
@@ -142,22 +151,23 @@ void loop() {
 
 void DIGITAL_READ_sCmd_query_handler(SerialCommand this_sCmd){
   int pin;
-  bool value;
+  bool state;
   char *arg = this_sCmd.next();
   if (arg == NULL){
     Serial.print(F("### Error: DIGITAL.READ requires 1 argument (int pin)\n"));
   }
   else{
     pin = atoi(arg);
-    value = digitalRead(pin);
-    Serial.print(value);
+    pinMode(pin,INPUT);
+    state = digitalRead(pin);
+    Serial.print(state);
     Serial.print('\n');
   }
 }
 
 void DIGITAL_WRITE_sCmd_action_handler(SerialCommand this_sCmd){
   int pin;
-  bool value;
+  bool state;
   char *arg = this_sCmd.next();
   if (arg == NULL){
     Serial.print(F("### Error: DIGITAL.WRITE requires 2 arguments (int pin, byte value), none given\n"));
@@ -169,8 +179,43 @@ void DIGITAL_WRITE_sCmd_action_handler(SerialCommand this_sCmd){
         Serial.print(F("### Error: DIGITAL.WRITE requires 2 arguments (int pin, byte value), 1 given\n"));
     }
     else{
+        state = atoi(arg);
+        digitalWrite(pin, state);
+    }
+  }
+}
+
+void ANALOG_READ_sCmd_query_handler(SerialCommand this_sCmd){
+  int pin;
+  uint16_t value;
+  char *arg = this_sCmd.next();
+  if (arg == NULL){
+    Serial.print(F("### Error: ANALOG.READ requires 1 argument (int pin)\n"));
+  }
+  else{
+    pin = atoi(arg);
+    value = analogRead(pin);
+    Serial.print(value);
+    Serial.print('\n');
+  }
+}
+
+void ANALOG_WRITE_sCmd_action_handler(SerialCommand this_sCmd){
+  int pin;
+  uint16_t value;
+  char *arg = this_sCmd.next();
+  if (arg == NULL){
+    Serial.print(F("### Error: ANALOG.WRITE requires 2 arguments (int pin, byte value), none given\n"));
+  }
+  else{
+    pin = atoi(arg);
+    arg = this_sCmd.next();
+    if (arg == NULL){
+        Serial.print(F("### Error: ANALOG.WRITE requires 2 arguments (int pin, byte value), 1 given\n"));
+    }
+    else{
         value = atoi(arg);
-        digitalWrite(pin, value);
+        analogWrite(pin, value);
     }
   }
 }
@@ -251,11 +296,14 @@ void DIGITAL_READ_pCmd_query_handler(PacketCommand& this_pCmd){
   #endif
   uint8_t pin;
   this_pCmd.unpack_uint8(pin);
-  bool value = digitalRead(pin);
+  pinMode(pin,INPUT); //change the pinmode
+  delayMicroseconds(10);
+  bool state = digitalRead(pin);
   //construct reply packet
   this_pCmd.resetOutputBuffer();
   this_pCmd.setupOutputCommandByName("DIGITAL!");
-  this_pCmd.pack_byte((byte) value);
+  this_pCmd.pack_uint8(pin);
+  this_pCmd.pack_byte((byte) state);
   this_pCmd.send();
 }
 
@@ -265,10 +313,42 @@ void DIGITAL_WRITE_pCmd_action_handler(PacketCommand& this_pCmd){
   #endif
   uint8_t pin;
   this_pCmd.unpack_uint8(pin);
-  bool value;
-  this_pCmd.unpack_byte((byte&) value);
+  bool state;
+  this_pCmd.unpack_byte((byte&) state);
   //complete the action
-  digitalWrite(pin, value);
+  pinMode(pin,OUTPUT); //change the pinmode
+  digitalWrite(pin, state);
+}
+
+
+void ANALOG_READ_pCmd_query_handler(PacketCommand& this_pCmd){
+  #if defined(DEBUG)
+  DEBUG_PORT.println(F("# ANALOG_READ_pCmd_query_handler"));
+  #endif
+  uint8_t pin;
+  this_pCmd.unpack_uint8(pin);
+  pinMode(pin,INPUT); //change the pinmode
+  delayMicroseconds(10);
+  uint16_t value = analogRead(pin);
+  //construct reply packet
+  this_pCmd.resetOutputBuffer();
+  this_pCmd.setupOutputCommandByName("ANALOG!");
+  this_pCmd.pack_uint8(pin);
+  this_pCmd.pack_uint16(value);
+  this_pCmd.send();
+}
+
+void ANALOG_WRITE_pCmd_action_handler(PacketCommand& this_pCmd){
+  #if defined(DEBUG)
+  DEBUG_PORT.println(F("# ANALOG_WRITE_pCmd_action_handler"));
+  #endif
+  uint8_t pin;
+  this_pCmd.unpack_uint8(pin);
+  uint16_t value;
+  this_pCmd.unpack_uint16(value);
+  //complete the action
+  pinMode(pin,OUTPUT); //change the pinmode
+  analogWrite(pin, value);
 }
 
 void LED_pCmd_query_handler(PacketCommand& this_pCmd) {

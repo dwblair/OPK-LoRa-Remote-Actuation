@@ -18,7 +18,7 @@
 #define LED_pin 13   // Arduino LED on board
 
 //Serial Interface for Testing over FDTI
-SerialCommand sCmd(Serial);
+SerialCommand sCmd_USB(Serial);
 
 #define PACKETCOMMAND_MAX_COMMANDS 20
 #define PACKETCOMMAND_INPUT_BUFFER_SIZE 32
@@ -42,23 +42,33 @@ void setup() {
   }
 
   // Setup callbacks for SerialCommand commands
-  sCmd.addCommand("LED?",        LED_sCmd_query_handler);         // reads input frequency
-  sCmd.addCommand("LED.ON",      LED_ON_sCmd_action_handler);          // Turns LED on
-  sCmd.addCommand("LED.OFF",     LED_OFF_sCmd_action_handler);         // Turns LED off
-  //sCmd.addCommand("FREQ1.READ?", FREQ1_READ_sCmd_query_handler);         // reads input frequency
-  sCmd.setDefaultHandler(UNRECOGNIZED_sCmd_handler);      // Handler for command that isn't matched  (says "What?")
+  sCmd_USB.addCommand("DIGITAL.READ?", DIGITAL_READ_sCmd_query_handler);
+  sCmd_USB.addCommand("DIGITAL.WRITE", DIGITAL_WRITE_sCmd_action_handler);
+  sCmd_USB.addCommand("ANALOG.READ?",  ANALOG_READ_sCmd_query_handler);
+  sCmd_USB.addCommand("ANALOG.WRITE",  ANALOG_WRITE_sCmd_action_handler);
+  sCmd_USB.addCommand("LED?",        LED_sCmd_query_handler);         // reads input frequency
+  sCmd_USB.addCommand("LED.ON",      LED_ON_sCmd_action_handler);          // Turns LED on
+  sCmd_USB.addCommand("LED.OFF",     LED_OFF_sCmd_action_handler);         // Turns LED off
+  //sCmd_USB.addCommand("FREQ1.READ?", FREQ1_READ_sCmd_query_handler);         // reads input frequency
+  sCmd_USB.setDefaultHandler(UNRECOGNIZED_sCmd_handler);      // Handler for command that isn't matched  (says "What?")
   #ifdef DEBUG
   DEBUG_PORT.println(F("# SerialCommand Ready"));
   #endif
   
   // Setup callbacks for PacketCommand requests
   //pCmd_RHRD.addCommand((byte*) "\xFF\x11","FREQ1.READ?", NULL);
-  pCmd_RHRD.addCommand((byte*) "\xFF\x40","LED?",      NULL);
-  pCmd_RHRD.addCommand((byte*) "\xFF\x41","LED.ON",      NULL);
-  pCmd_RHRD.addCommand((byte*) "\xFF\x42","LED.OFF",     NULL);
+  pCmd_RHRD.addCommand((byte*) "\xFF\x21","DIGITAL.READ?", NULL);
+  pCmd_RHRD.addCommand((byte*) "\xFF\x22","DIGITAL.WRITE", NULL);
+  pCmd_RHRD.addCommand((byte*) "\xFF\x23","ANALOG.READ?",  NULL);
+  pCmd_RHRD.addCommand((byte*) "\xFF\x24","ANALOG.WRITE",  NULL);
+  pCmd_RHRD.addCommand((byte*) "\xFF\x40","LED?",          NULL);
+  pCmd_RHRD.addCommand((byte*) "\xFF\x41","LED.ON",        NULL);
+  pCmd_RHRD.addCommand((byte*) "\xFF\x42","LED.OFF",       NULL);
   //Setup callbacks for PacketCommand replies
-  //pCmd_RHRD.addCommand((byte*) "\x11","FREQ1!",          FREQ1_pCmd_reply_handler);
-  pCmd_RHRD.addCommand((byte*) "\x40","LED!",            LED_pCmd_reply_handler);
+  //pCmd_RHRD.addCommand((byte*) "\x11","FREQ1!",   FREQ1_pCmd_reply_handler);
+  pCmd_RHRD.addCommand((byte*) "\x21","DIGITAL!", DIGITAL_pCmd_reply_handler);
+  pCmd_RHRD.addCommand((byte*) "\x23","ANALOG!",  ANALOG_pCmd_reply_handler);
+  pCmd_RHRD.addCommand((byte*) "\x40","LED!",     LED_pCmd_reply_handler);
   //pCmd.registerDefaultHandler(unrecognized);                          // Handler for command that isn't matched  (says "What?")
   pCmd_RHRD.registerRecvCallback(pCmd_RHRD_recv_callback);
   pCmd_RHRD.registerSendCallback(pCmd_RHRD_send_callback);
@@ -78,15 +88,12 @@ void setup() {
 // Main Loop
 
 void loop() {
-  int num_bytes = sCmd.readSerial();      // fill the buffer
-  
+  int num_bytes = sCmd_USB.readSerial();      // fill the buffer
   if (num_bytes > 0){
-    sCmd.processCommand();  // process the command
+    sCmd_USB.processCommand();  // process the command
   }
-  
   //process incoming radio packets
   pCmd_RHRD_module_proccess_input(pCmd_RHRD);
-  
   delay(10);
 }
 
@@ -99,19 +106,109 @@ void loop() {
 //  pCmd_RHRD.send();
 //}
 
+void DIGITAL_READ_sCmd_query_handler(SerialCommand this_sCmd){
+  int pin;
+  bool value;
+  char *arg = this_sCmd.next();
+  if (arg == NULL){
+    Serial.print(F("### Error: DIGITAL.READ requires 1 argument (int pin)\n"));
+  }
+  else{
+    pin = atoi(arg);
+    //relay command over radio
+    pCmd_RHRD.resetOutputBuffer();
+    pCmd_RHRD.setupOutputCommandByName("DIGITAL.READ?");
+    pCmd_RHRD.pack_uint8(pin);
+    pCmd_RHRD.pack_byte((byte) value);
+    pCmd_RHRD.send();
+  }
+}
+
+void DIGITAL_WRITE_sCmd_action_handler(SerialCommand this_sCmd){
+  int pin;
+  bool value;
+  char *arg = this_sCmd.next();
+  if (arg == NULL){
+    Serial.print(F("### Error: DIGITAL.WRITE requires 2 arguments (int pin, byte value), none given\n"));
+  }
+  else{
+    pin = atoi(arg);
+    arg = this_sCmd.next();
+    if (arg == NULL){
+        Serial.print(F("### Error: DIGITAL.WRITE requires 2 arguments (int pin, byte value), 1 given\n"));
+    }
+    else{
+        value = atoi(arg);
+        //relay command over radio
+        pCmd_RHRD.resetOutputBuffer();
+        pCmd_RHRD.setupOutputCommandByName("DIGITAL.WRITE");
+        pCmd_RHRD.pack_uint8(pin);
+        pCmd_RHRD.pack_byte((byte) value);
+        pCmd_RHRD.send();
+    }
+  }
+}
+
+void ANALOG_READ_sCmd_query_handler(SerialCommand this_sCmd){
+  uint8_t  pin;
+  uint16_t value;
+  char *arg = this_sCmd.next();
+  if (arg == NULL){
+    Serial.print(F("### Error: ANALOG.READ requires 1 argument (int pin)\n"));
+  }
+  else{
+    pin = atoi(arg);
+    //relay command over radio
+    pCmd_RHRD.resetOutputBuffer();
+    pCmd_RHRD.setupOutputCommandByName("ANALOG.READ?");
+    pCmd_RHRD.pack_uint8(pin);
+    pCmd_RHRD.pack_uint16(value);
+    pCmd_RHRD.send();
+  }
+}
+
+void ANALOG_WRITE_sCmd_action_handler(SerialCommand this_sCmd){
+  uint8_t  pin;
+  uint16_t value;
+  char *arg = this_sCmd.next();
+  if (arg == NULL){
+    Serial.print(F("### Error: ANALOG.WRITE requires 2 arguments (int pin, byte value), none given\n"));
+  }
+  else{
+    pin = atoi(arg);
+    arg = this_sCmd.next();
+    if (arg == NULL){
+        Serial.print(F("### Error: ANALOG.WRITE requires 2 arguments (int pin, byte value), 1 given\n"));
+    }
+    else{
+        value = atoi(arg);
+        //relay command over radio
+        pCmd_RHRD.resetOutputBuffer();
+        pCmd_RHRD.setupOutputCommandByName("ANALOG.WRITE");
+        pCmd_RHRD.pack_uint8(pin);
+        pCmd_RHRD.pack_uint16(value);
+        pCmd_RHRD.send();
+    }
+  }
+}
+
+
 void LED_sCmd_query_handler(SerialCommand this_sCmd) {
+  //relay command over radio
   pCmd_RHRD.resetOutputBuffer();
   pCmd_RHRD.setupOutputCommandByName("LED?");
   pCmd_RHRD.send();
 }
 
 void LED_ON_sCmd_action_handler(SerialCommand this_sCmd) {
+  //relay command over radio
   pCmd_RHRD.resetOutputBuffer();
   pCmd_RHRD.setupOutputCommandByName("LED.ON");
   pCmd_RHRD.send();
 }
 
 void LED_OFF_sCmd_action_handler(SerialCommand this_sCmd) {
+  //relay command over radio
   pCmd_RHRD.resetOutputBuffer();
   pCmd_RHRD.setupOutputCommandByName("LED.OFF");
   pCmd_RHRD.send();
@@ -142,6 +239,42 @@ void UNRECOGNIZED_sCmd_handler(SerialCommand this_sCmd) {
 //  Serial.print(F("  from_addr:      "));Serial.println(input_props.from_addr);
 //  Serial.print(F("  RSSI:           "));Serial.println(input_props.RSSI);
 //}
+
+void DIGITAL_pCmd_reply_handler(PacketCommand& this_pCmd){
+  uint8_t pin;
+  bool state;
+  this_pCmd.unpack_uint8(pin);           //the pin to which this reply refers
+  this_pCmd.unpack_byte((byte&) state);  //updated by reference
+  PacketCommand::InputProperties input_props = this_pCmd.getInputProperties();
+  //CSV
+  //Serial.println(state);
+  //YAML
+  Serial.println(F("---"));
+  Serial.println(F("DIGITAL:"));
+  Serial.print(F("  pin:            "));Serial.println(pin);
+  Serial.print(F("  state:          "));Serial.println(state);
+  Serial.print(F("  recv_timestamp: "));Serial.println(input_props.recv_timestamp);
+  Serial.print(F("  from_addr:      "));Serial.println(input_props.from_addr);
+  Serial.print(F("  RSSI:           "));Serial.println(input_props.RSSI);
+}
+
+void ANALOG_pCmd_reply_handler(PacketCommand& this_pCmd){
+  uint8_t pin;
+  uint16_t value;
+  this_pCmd.unpack_uint8(pin);           //the pin to which this reply refers
+  this_pCmd.unpack_uint16(value);  //updated by reference
+  PacketCommand::InputProperties input_props = this_pCmd.getInputProperties();
+  //CSV
+  //Serial.println(state);
+  //YAML
+  Serial.println(F("---"));
+  Serial.println(F("ANALOG:"));
+  Serial.print(F("  pin:            "));Serial.println(pin);
+  Serial.print(F("  value:          "));Serial.println(value);
+  Serial.print(F("  recv_timestamp: "));Serial.println(input_props.recv_timestamp);
+  Serial.print(F("  from_addr:      "));Serial.println(input_props.from_addr);
+  Serial.print(F("  RSSI:           "));Serial.println(input_props.RSSI);
+}
 
 void LED_pCmd_reply_handler(PacketCommand& this_pCmd){
   bool state;
