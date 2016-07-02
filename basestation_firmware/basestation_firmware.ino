@@ -249,13 +249,14 @@ void DIGITAL_pCmd_reply_handler(PacketCommand& this_pCmd){
   //CSV
   //Serial.println(state);
   //YAML
-  Serial.println(F("---"));
+  Serial.println(F("---")); //start YAML doc
   Serial.println(F("DIGITAL:"));
-  Serial.print(F("  pin:            "));Serial.println(pin);
-  Serial.print(F("  state:          "));Serial.println(state);
-  Serial.print(F("  recv_timestamp: "));Serial.println(input_props.recv_timestamp);
-  Serial.print(F("  from_addr:      "));Serial.println(input_props.from_addr);
-  Serial.print(F("  RSSI:           "));Serial.println(input_props.RSSI);
+  Serial.print(F("  pin:         "));Serial.println(pin);
+  Serial.print(F("  state:       "));Serial.println(state);
+  Serial.print(F("  recv_millis: "));Serial.println(input_props.recv_timestamp);
+  Serial.print(F("  from_addr:   "));Serial.println(input_props.from_addr);
+  Serial.print(F("  RSSI:        "));Serial.println(input_props.RSSI);
+  Serial.println(F("...")); //end YAML doc
 }
 
 void ANALOG_pCmd_reply_handler(PacketCommand& this_pCmd){
@@ -267,13 +268,14 @@ void ANALOG_pCmd_reply_handler(PacketCommand& this_pCmd){
   //CSV
   //Serial.println(state);
   //YAML
-  Serial.println(F("---"));
+  Serial.println(F("---")); //start YAML doc
   Serial.println(F("ANALOG:"));
-  Serial.print(F("  pin:            "));Serial.println(pin);
-  Serial.print(F("  value:          "));Serial.println(value);
-  Serial.print(F("  recv_timestamp: "));Serial.println(input_props.recv_timestamp);
-  Serial.print(F("  from_addr:      "));Serial.println(input_props.from_addr);
-  Serial.print(F("  RSSI:           "));Serial.println(input_props.RSSI);
+  Serial.print(F("  pin:         "));Serial.println(pin);
+  Serial.print(F("  value:       "));Serial.println(value);
+  Serial.print(F("  recv_millis: "));Serial.println(input_props.recv_timestamp);
+  Serial.print(F("  from_addr:   "));Serial.println(input_props.from_addr);
+  Serial.print(F("  RSSI:        "));Serial.println(input_props.RSSI);
+  Serial.println(F("...")); //end YAML doc
 }
 
 void LED_pCmd_reply_handler(PacketCommand& this_pCmd){
@@ -283,11 +285,12 @@ void LED_pCmd_reply_handler(PacketCommand& this_pCmd){
   //CSV
   //Serial.println(state);
   //YAML
-  Serial.println(F("---"));
+  Serial.println(F("---")); //start YAML doc
   Serial.println(F("LED:"));
-  Serial.print(F("  state:          "));Serial.println(state);
-  Serial.print(F("  recv_timestamp: "));Serial.println(input_props.recv_timestamp);
-  Serial.print(F("  from_addr:      "));Serial.println(input_props.from_addr);
-  Serial.print(F("  RSSI:           "));Serial.println(input_props.RSSI);
+  Serial.print(F("  state:       "));Serial.println(state);
+  Serial.print(F("  recv_millis: "));Serial.println(input_props.recv_timestamp);
+  Serial.print(F("  from_addr:   "));Serial.println(input_props.from_addr);
+  Serial.print(F("  RSSI:        "));Serial.println(input_props.RSSI);
+  Serial.println(F("...")); //end YAML doc
 }
 

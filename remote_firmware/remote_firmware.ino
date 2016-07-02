@@ -347,8 +347,30 @@ void ANALOG_WRITE_pCmd_action_handler(PacketCommand& this_pCmd){
   uint16_t value;
   this_pCmd.unpack_uint16(value);
   //complete the action
+  #if defined(ARDUINO_SAMD_ZERO)
+  switch(pin){
+    case 5:
+    case 6:
+    case 10:
+    case 11:
+    case 12:
+      //8-bit PWM
+      value = constrain(value,0,255);
+      pinMode(pin,OUTPUT); //change the pinmode
+      analogWrite(pin, (uint8_t) value);
+      break;
+    case 14: //==A0
+      //10-bit DAC
+      pinMode(pin,OUTPUT); //change the pinmode
+      analogWrite(pin, (uint16_t) value);
+    default:
+      break;
+  };
+  #else
+  value = constrain(value,0,255);
   pinMode(pin,OUTPUT); //change the pinmode
-  analogWrite(pin, value);
+  analogWrite(pin, (uint8_t) value);
+  #endif
 }
 
 void LED_pCmd_query_handler(PacketCommand& this_pCmd) {
