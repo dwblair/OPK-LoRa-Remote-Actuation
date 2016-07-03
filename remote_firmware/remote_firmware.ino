@@ -21,6 +21,8 @@
 #define LED_pin 13   /* Arduino LED on board */
 //#define LED_pin 9    /* Moteino LED on board */
 
+//#define SQUAWKBOX_HAS_RGBLED
+
 bool LED_state = LOW;
 
 
@@ -38,16 +40,19 @@ PacketCommand pCmd_RHRD(PACKETCOMMAND_MAX_COMMANDS,
 #define BASESTATION_ADDRESS 1
 #define DEFAULT_REMOTE_ADDRESS 2
 
+#ifdef SQUAWKBOX_HAS_RGBLED
 void rgb_led(uint8_t r, uint8_t g, uint8_t b){
   analogWrite(5 ,r);
   analogWrite(10,g);
   analogWrite(11,b);
 }
+#endif
 //******************************************************************************
 // Setup
 void setup() {
   pinMode(LED_pin, OUTPUT);      // Configure the onboard LED for output
   //FreqCount.begin(1000); //this is the gateing interval/duration of measurement
+  #ifdef SQUAWKBOX_HAS_RGBLED
   //setup PWM pins for RGB LED
   pinMode(5,OUTPUT);
   pinMode(10,OUTPUT);
@@ -67,7 +72,7 @@ void setup() {
   rgb_led(255,255,255); //white
   delay(250);
   rgb_led(0,0,0); //off
-  
+  #endif
   
   Serial.begin(115200);
 
@@ -381,6 +386,7 @@ void LED_pCmd_query_handler(PacketCommand& this_pCmd) {
 }
 
 void LED_ON_pCmd_action_handler(PacketCommand& this_pCmd) {
+  #ifdef SQUAWKBOX_HAS_RGBLED
   PacketCommand::InputProperties input_props = this_pCmd.getInputProperties();
   if(input_props.RSSI > -75){        //strong signal
     rgb_led(0,255,0); //green
@@ -391,9 +397,18 @@ void LED_ON_pCmd_action_handler(PacketCommand& this_pCmd) {
   } else{                            //very low or no signal
     rgb_led(255,0,0); //red
   }
+  #else
+  digitalWrite(LED_pin,HIGH);
+  #endif
+  LED_state = HIGH;
 }
 
 void LED_OFF_pCmd_action_handler(PacketCommand& this_pCmd) {
+  #ifdef SQUAWKBOX_HAS_RGBLED
   rgb_led(0,0,0); //off
+  #else
+  digitalWrite(LED_pin,LOW);
+  #endif
+  LED_state = LOW;
 }
 

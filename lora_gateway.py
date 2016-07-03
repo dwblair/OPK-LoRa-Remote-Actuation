@@ -34,13 +34,14 @@ class LoRaGateway(object):
                 self.pkt['data']           = info
                 return self.pkt
         else:
+            self.pkt = None
             raise IOError("yaml_query failed max retries")
         
     def digital_read(self, pin):
         cmd = "DIGITAL.READ? %d" % pin
         pkt = self._yaml_query(cmd)
         assert(pkt['type'] == 'DIGITAL')
-        return pkt['data']['state']  #return only the state value
+        return bool(pkt['data']['state'])  #return only the state value
         
     def digital_write(self, pin, state):
         state = bool(state)
@@ -49,13 +50,29 @@ class LoRaGateway(object):
         
     def analog_read(self, pin):
         cmd = "ANALOG.READ? %d" % pin
-        pkt = self.yaml_query(cmd)
+        pkt = self._yaml_query(cmd)
         assert(pkt['type'] == 'ANALOG')
         return pkt['data']['value'] #return only the state value
         
     def analog_write(self, pin, value):
         cmd = "ANALOG.WRITE %d %d" % (pin,value)
         self._send_command(cmd)
+        
+    def set_LED(self,state):
+        if state == "ON" or state is True:
+            state = "ON"
+        elif state == "OFF" or state is False:
+            state = "OFF"
+        else:
+            raise ValueError("State must be either ['ON',True] or ['OFF',False]")
+        cmd = "LED.%s" % state
+        self._send_command(cmd)
+        
+    def get_LED(self):
+        cmd = "LED?"
+        pkt = self._yaml_query(cmd)
+        assert(pkt['type'] == 'LED')
+        return bool(pkt['data']['state']) #return only the state value
 
 ################################################################################
 if __name__ == "__main__":

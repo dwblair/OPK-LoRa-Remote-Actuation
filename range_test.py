@@ -1,44 +1,30 @@
 import time, glob
-import serial, yaml
+from lora_gateway import LoRaGateway
 
 DELAY_TIME = 1.0
 
 port = glob.glob("/dev/ttyACM*")[0]
-ser = serial.Serial(port, baudrate=115200)
 
-def exchange_yaml(cmd):
-    ser.write(cmd.encode())
-    lines = []
-    while ser.inWaiting():
-        line = ser.readline()
-        line = line.strip("\r\n")
-        print(line)
-        if not line.startswith("#"):
-            lines.append(line)
-    doc = "\n".join(lines)
-    reply = yaml.load(doc)
-    return reply
-
+LG = LoRaGateway(port)
 outfile = open("output.csv","w")
 
-def cmd_gen():
-    while True:
-        yield "LED.ON\n".encode()
-        yield "LED.OFF\n".encode()
-
-gCmd = cmd_gen()
-
+led_state = False
 try:
     while True:
         try:
-            ser.write(gCmd.next())
+            led_state ^= True #toggle LED state
+            LG.set_LED(led_state)
             time.sleep(DELAY_TIME)
-            reply = exchange_yaml("LED?\n")
+            LG.get_LED()
             time.sleep(DELAY_TIME)
-            print reply
-            if not reply is None:
-                data = reply['LED']
-                outfile.write("{recv_timestamp},{RSSI}\n".format(**data))
+            #get all the packet info
+            pkt = LG.pkt
+            if not pkt is None:
+                info = pkt.copy()
+                print("---")
+                for k, v in info.items():
+                    print("%s: %s" % (k,v))
+                outfile.write("{recv_timestamp},{RSSI}\n".format(**info))
                 outfile.flush()
             else:
                 #chill out for a bit
