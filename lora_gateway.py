@@ -65,6 +65,8 @@ class LoRaGateway(object):
     def _yaml_query(self, cmd, retries=None):
         if retries is None:
             retries = self.retries
+        #clear out the buffer
+        self._ser.flush()
         for i in range(1 + retries):
             success = self._send_command(cmd)
             if not success:
