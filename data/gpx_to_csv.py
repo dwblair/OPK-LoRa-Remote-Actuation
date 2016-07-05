@@ -1,13 +1,15 @@
 from xml.dom.minidom import parseString
 from datetime import datetime
 from dateutil import tz
-import os
+import os, sys
 
 #convert from GPS time (UTC) to our local time zone
 from_zone = tz.gettz('UTC')
 to_zone = tz.gettz('America/New_York')  #Eastern Standard Time (EST)
 
-fname = './2016-06-18_PVD_LoRa_Track-160619-131701.gpx'
+print sys.argv
+
+fname = sys.argv[1]
 doc = open(fname).read()
 dom = parseString(doc)
 

@@ -21,7 +21,7 @@
 #define LED_pin 13   /* Arduino LED on board */
 //#define LED_pin 9    /* Moteino LED on board */
 
-//#define SQUAWKBOX_HAS_RGBLED
+#define SQUAWKBOX_HAS_RGBLED
 
 bool LED_state = LOW;
 
@@ -116,7 +116,8 @@ void setup() {
   pCmd_RHRD_module_setup(DEFAULT_REMOTE_ADDRESS,
                          PCMD_RHRD_DEFAULT_FREQUENCY,
                          PCMD_RHRD_DEFAULT_TX_POWER,
-                         PCMD_RHRD_DEFAULT_NUM_RETRIES
+                         1,//PCMD_RHRD_DEFAULT_NUM_RETRIES,
+                         PCMD_RHRD_DEFAULT_TIMEOUT
                          );
                          
   //configure the default node address

@@ -20,7 +20,7 @@
 #define PCMD_RHRD_DEFAULT_FREQUENCY 915
 #define PCMD_RHRD_DEFAULT_TX_POWER 23
 #define PCMD_RHRD_DEFAULT_NUM_RETRIES 10
-#define PCMD_RHRD_DEFAULT_TIMEOUT 2000
+#define PCMD_RHRD_DEFAULT_TIMEOUT 5000
 
 void pCmd_RHRD_module_setup(uint8_t this_address,
                             unsigned int radio_frequency,

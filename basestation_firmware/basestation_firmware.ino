@@ -77,7 +77,8 @@ void setup() {
   pCmd_RHRD_module_setup(BASESTATION_ADDRESS,
                          PCMD_RHRD_DEFAULT_FREQUENCY,
                          PCMD_RHRD_DEFAULT_TX_POWER,
-                         PCMD_RHRD_DEFAULT_NUM_RETRIES
+                         0,//PCMD_RHRD_DEFAULT_NUM_RETRIES,
+                         PCMD_RHRD_DEFAULT_TIMEOUT
                          );
                          
   //configure the default node address
@@ -120,7 +121,13 @@ void DIGITAL_READ_sCmd_query_handler(SerialCommand this_sCmd){
     pCmd_RHRD.setupOutputCommandByName("DIGITAL.READ?");
     pCmd_RHRD.pack_uint8(pin);
     pCmd_RHRD.pack_byte((byte) value);
-    pCmd_RHRD.send();
+    bool sentPacket;
+    pCmd_RHRD.send(sentPacket);
+    if(sentPacket){
+      Serial.print("OK\n");
+    } else{
+      Serial.print("FAIL\n");
+    }
   }
 }
 
@@ -138,13 +145,19 @@ void DIGITAL_WRITE_sCmd_action_handler(SerialCommand this_sCmd){
         Serial.print(F("### Error: DIGITAL.WRITE requires 2 arguments (int pin, byte value), 1 given\n"));
     }
     else{
-        value = atoi(arg);
-        //relay command over radio
-        pCmd_RHRD.resetOutputBuffer();
-        pCmd_RHRD.setupOutputCommandByName("DIGITAL.WRITE");
-        pCmd_RHRD.pack_uint8(pin);
-        pCmd_RHRD.pack_byte((byte) value);
-        pCmd_RHRD.send();
+      value = atoi(arg);
+      //relay command over radio
+      pCmd_RHRD.resetOutputBuffer();
+      pCmd_RHRD.setupOutputCommandByName("DIGITAL.WRITE");
+      pCmd_RHRD.pack_uint8(pin);
+      pCmd_RHRD.pack_byte((byte) value);
+      bool sentPacket;
+      pCmd_RHRD.send(sentPacket);
+      if(sentPacket){
+        Serial.print("OK\n");
+      } else{
+        Serial.print("FAIL\n");
+      }
     }
   }
 }
@@ -163,7 +176,13 @@ void ANALOG_READ_sCmd_query_handler(SerialCommand this_sCmd){
     pCmd_RHRD.setupOutputCommandByName("ANALOG.READ?");
     pCmd_RHRD.pack_uint8(pin);
     pCmd_RHRD.pack_uint16(value);
-    pCmd_RHRD.send();
+    bool sentPacket;
+    pCmd_RHRD.send(sentPacket);
+    if(sentPacket){
+      Serial.print("OK\n");
+    } else{
+      Serial.print("FAIL\n");
+    }
   }
 }
 
@@ -187,7 +206,13 @@ void ANALOG_WRITE_sCmd_action_handler(SerialCommand this_sCmd){
         pCmd_RHRD.setupOutputCommandByName("ANALOG.WRITE");
         pCmd_RHRD.pack_uint8(pin);
         pCmd_RHRD.pack_uint16(value);
-        pCmd_RHRD.send();
+        bool sentPacket;
+        pCmd_RHRD.send(sentPacket);
+        if(sentPacket){
+          Serial.print("OK\n");
+        } else{
+          Serial.print("FAIL\n");
+        }
     }
   }
 }
@@ -197,21 +222,39 @@ void LED_sCmd_query_handler(SerialCommand this_sCmd) {
   //relay command over radio
   pCmd_RHRD.resetOutputBuffer();
   pCmd_RHRD.setupOutputCommandByName("LED?");
-  pCmd_RHRD.send();
+  bool sentPacket;
+  pCmd_RHRD.send(sentPacket);
+  if(sentPacket){
+    Serial.print("OK\n");
+  } else{
+    Serial.print("FAIL\n");
+  }
 }
 
 void LED_ON_sCmd_action_handler(SerialCommand this_sCmd) {
   //relay command over radio
   pCmd_RHRD.resetOutputBuffer();
   pCmd_RHRD.setupOutputCommandByName("LED.ON");
-  pCmd_RHRD.send();
+  bool sentPacket;
+  pCmd_RHRD.send(sentPacket);
+  if(sentPacket){
+    Serial.print("OK\n");
+  } else{
+    Serial.print("FAIL\n");
+  }
 }
 
 void LED_OFF_sCmd_action_handler(SerialCommand this_sCmd) {
   //relay command over radio
   pCmd_RHRD.resetOutputBuffer();
   pCmd_RHRD.setupOutputCommandByName("LED.OFF");
-  pCmd_RHRD.send();
+  bool sentPacket;
+  pCmd_RHRD.send(sentPacket);
+  if(sentPacket){
+    Serial.print("OK\n");
+  } else{
+    Serial.print("FAIL\n");
+  }
 }
 
 

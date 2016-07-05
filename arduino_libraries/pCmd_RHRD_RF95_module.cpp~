@@ -168,9 +168,6 @@ bool pCmd_RHRD_send_callback(PacketCommand& this_pCmd){
   #endif
   bool success = manager_RHRD.sendtoWait(outputBuffer, len, to_addr);
   if(!success){
-    #ifdef DEBUG
-    DEBUG_PORT.println(F("# send failed"));
-    #endif
     return false;
   }
   else{

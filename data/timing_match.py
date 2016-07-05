@@ -1,12 +1,16 @@
 import pandas as pd # nice data utilities
-import os
+import os, sys
 import numpy as np
 import matplotlib.pyplot as plt # getting specific plotting functions
 
 
 
-fname = '2016-06-18_PVD_LoRa_Track-160619-131701.csv' #this file is created by running gpx_to_csv.py
-gps_track = pd.read_table(fname, 
+fname1 = sys.argv[1]
+fname2 = sys.argv[2]
+print "GPS file (.csv):",fname1
+print "RSSI log (.csv):",fname2
+
+gps_track = pd.read_table(fname1, 
                           header = 0,
                           sep    = ',',
                           names  = ['time','lat','lon','ele','x:speed']
@@ -14,14 +18,14 @@ gps_track = pd.read_table(fname,
 
 
 
-radio_log = pd.read_table('2016-06-18_PVD_LoRa_range_test.csv',
+radio_log = pd.read_table(fname2,
                           header = 0,
                           sep    = ',',
-                          names  = ['millis','rssi']
+                          names  = ['timestamp','rssi']
                          );
 
 gps_seconds   = gps_track.time - gps_track.time[0]
-radio_seconds = (radio_log.millis - radio_log.millis[0])/1e3
+radio_seconds = radio_log.timestamp - radio_log.timestamp[0]
 
 avg_sRs = []    #this will hold the RSSI signal average over the interval
 std_sRs = []    #this will hold the RSSI signal standard deviation over the interval
@@ -30,19 +34,23 @@ iR = 0          #index into radio data array
 #each GPS time will be the righthand bound of the interval
 tR = radio_seconds[iR]
 for tG in gps_seconds:
-    while tR < tG :
-        iR += 1  #move the interval to the right
-        tR = radio_seconds[iR]
-        group_sRs.append(radio_log.rssi[iR])
-    #finish calculating this interval
-    if len(group_sRs) == 0: #empty interval means radio dropout
-        avg_sRs.append(np.NaN)
-        std_sRs.append(0)
-    else:
-        avg_sRs.append(np.mean(group_sRs))
-        std_sRs.append(np.std(group_sRs))
-    #begin new interval
-    group_sRs = []
+    print tG,iR,tR
+    try:
+        while tR < tG :
+            iR += 1  #move the interval to the right
+            tR = radio_seconds[iR]
+            group_sRs.append(radio_log.rssi[iR])
+        #finish calculating this interval
+        if len(group_sRs) == 0: #empty interval means radio dropout
+            avg_sRs.append(np.NaN)
+            std_sRs.append(0)
+        else:
+            avg_sRs.append(np.mean(group_sRs))
+            std_sRs.append(np.std(group_sRs))
+        #begin new interval
+        group_sRs = []
+    except KeyError, exc:
+        print "Warning caught exception: ", exc
 
 avg_sRs = np.array(avg_sRs)
 std_sRs = np.array(std_sRs)
@@ -55,6 +63,6 @@ plt.errorbar(gps_seconds, avg_sRs, yerr = std_sRs, fmt = '.')
 gps_track['RSSI'] = avg_sRs
 gps_track['RSSI_err'] = std_sRs
 #generate new filename
-base, ext = os.path.splitext(fname)
+base, ext = os.path.splitext(fname1)
 new_fname = "%s_GPS-RSSI.csv" % base
 gps_track.to_csv(new_fname)

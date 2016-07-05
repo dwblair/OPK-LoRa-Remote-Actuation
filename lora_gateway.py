@@ -1,27 +1,75 @@
 from collections import OrderedDict
+import time
 import serial, yaml
+
+DEBUG = False
+DEBUG = True
 
 class LoRaGateway(object):
     def __init__(self,
-                 port, baudrate = 115200, timeout = 0.1, endl = "\n",
+                 port, baudrate = 115200, timeout = 5.0, endl = "\n",
                  retries = 5,
+                 retry_delay = 1.0,
                  ):
         self._ser = serial.Serial(port, baudrate = baudrate, timeout = timeout)
         self.endl = endl
         self.retries = retries
+        self.retry_delay = retry_delay
         self.pkt = None
         
     def _send_command(self, cmd):
         #remove any surrounding whitespace append the correct endl characters
         cmd = cmd.strip() + self.endl
         self._ser.write(cmd.encode())
+        #check to see if command has succeeded
+        while True:
+            line = self._ser.readline()
+            line = line.decode('utf-8') #needed for Python 3, bytes to string conversion
+            if not line.startswith("#"):
+                if line.startswith("OK"):
+                    return True
+                elif line.startswith("FAIL"):
+                    return False
+                else:
+                    raise IOError("got invalid line in _send_command: %s" % line)
         
+    def _parse_yaml(self):
+        buff = []
+        inside_doc = False
+        while True:
+            line = self._ser.readline()
+            line = line.decode('utf-8') #needed for Python 3, bytes to string conversion
+            if line == "": #timeout has occured
+                print("# Warning timed-out waiting for serial.readline")
+                return None
+            line = line.strip("\r\n")
+            print(line)
+            if not line.startswith("#"):
+                buff.append(line)
+            if inside_doc:
+                if line.startswith("---"):
+                    inside_doc = True
+                    print("#ending doc")
+                    break
+                elif line.startswith("..."):
+                    inside_doc = False
+                    print("#ending doc")
+                    break
+            elif line.startswith("---"):
+                inside_doc = True
+                print("#starting doc")
+        buff = "\n".join(buff)
+        doc = yaml.load(buff) #note this will always take at least one timeout period
+        return doc
+ 
     def _yaml_query(self, cmd, retries=None):
         if retries is None:
             retries = self.retries
         for i in range(1 + retries):
-            self._send_command(cmd)
-            doc = yaml.load(self._ser) #note this will always take at least one timeout period
+            success = self._send_command(cmd)
+            if not success:
+                continue #cycle back for another try
+            doc = self._parse_yaml()
             if not doc is None:
                 self.pkt = OrderedDict()
                 assert(len(doc.keys()) == 1)
@@ -33,6 +81,11 @@ class LoRaGateway(object):
                 self.pkt['retry_attempt']  = i
                 self.pkt['data']           = info
                 return self.pkt
+            #got nothing or incomplete document, flush and try again
+            self._ser.flush()
+            time.sleep(self.retry_delay)
+            if DEBUG:
+                print("# Retry #%d" % (i+1))
         else:
             self.pkt = None
             raise IOError("yaml_query failed max retries")
