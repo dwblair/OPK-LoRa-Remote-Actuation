@@ -8,7 +8,7 @@
 #define PCMD_RHRD_RF95_MODULE_INCLUDE
 
 //uncomment for debugging messages
-#define DEBUG
+//#define DEBUG
 
 #ifdef DEBUG
   #define DEBUG_PORT Serial
