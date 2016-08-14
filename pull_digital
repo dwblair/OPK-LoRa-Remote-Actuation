@@ -8,11 +8,14 @@ import json
 parser = argparse.ArgumentParser(description='Read from serial and echomessage')
 parser.add_argument('-d', '--device', default=glob.glob("/dev/ttyACM*")[0], help='path to serial device')
 parser.add_argument('-r', '--rate', default=115200, help='rate of serial communication',type=int)
-parser.add_argument('-o', '--outfilename', default='output.csv', help='output file')
+parser.add_argument('-o', '--outfilename', default='output.json', help='output file')
+parser.add_argument('-p', '--pin', default=10, help='the digital pin we want to measure',type=int)
 args = parser.parse_args()
 
 port = args.device
 rate = args.rate
+PIN=args.pin
+
 outfilename=str(args.outfilename)
 
 DELAY_TIME = 1.0
@@ -20,44 +23,34 @@ DELAY_TIME = 1.0
 # create a lora gateway object
 LG = LoRaGateway(port,rate)
 
-outfile = open(outfilename,"w")
+outfile = open(outfilename,"a")
 
-# the digital pin we want to read
-PIN=10
 
 try:
 
     # read the value of a digital pin
     LG.digital_read(PIN)
     
-    # wait sufficient time to get response
-    #time.sleep(DELAY_TIME)
-    
     # get the response (in 'dict' format)
     pkt = LG.pkt
     
     if not pkt is None:
     
-        # make a local copy of pkt
-        info = pkt.copy()
-        
-        #accessing pkt variables:
-        #rssi=pkt['RSSI']
-        #state=pkt['data']['state']
-        #pin=pkt['data']['pin']
-        
+        json_out=json.dumps(pkt)
+          
         # print json to the command line
-        print json.dumps(pkt)
-       
-        # write to a local output file
-        #outfile.write("{recv_timestamp},{RSSI},{data}\n".format(**info))
-        outfile.write(json.dumps(pkt))
+        print json_out
+        
+        # write it to a file
+        outfile.write(json_out)
         outfile.flush()
         
     else:
         print 'ERROR'
+        
 except Exception as exc:
     print "# WARNING caught exception: %s" % exc
+    
 finally:
     outfile.close()
 

@@ -3,13 +3,14 @@ import time
 import serial, yaml
 
 DEBUG = False
-DEBUG = True
+#DEBUG = True
 
 class LoRaGateway(object):
     def __init__(self,
                  port, baudrate = 115200, timeout = 5.0, endl = "\n",
                  retries = 5,
                  retry_delay = 1.0,
+                 
                  ):
         self._ser = serial.Serial(port, baudrate = baudrate, timeout = timeout)
         self.endl = endl
@@ -40,24 +41,29 @@ class LoRaGateway(object):
             line = self._ser.readline()
             line = line.decode('utf-8') #needed for Python 3, bytes to string conversion
             if line == "": #timeout has occured
-                print("# Warning timed-out waiting for serial.readline")
+                if (DEBUG):
+                    print("# Warning timed-out waiting for serial.readline")
                 return None
             line = line.strip("\r\n")
-            print(line)
+            if (DEBUG):
+                print(line)
             if not line.startswith("#"):
                 buff.append(line)
             if inside_doc:
                 if line.startswith("---"):
                     inside_doc = True
-                    print("#ending doc")
+                    if (DEBUG):
+                        print("#ending doc")
                     break
                 elif line.startswith("..."):
                     inside_doc = False
-                    print("#ending doc")
+                    if (DEBUG):
+                        print("#ending doc")
                     break
             elif line.startswith("---"):
                 inside_doc = True
-                print("#starting doc")
+                if (DEBUG):
+                    print("#starting doc")
         buff = "\n".join(buff)
         doc = yaml.load(buff) #note this will always take at least one timeout period
         return doc
@@ -108,6 +114,7 @@ class LoRaGateway(object):
         pkt = self._yaml_query(cmd)
         assert(pkt['type'] == 'ANALOG')
         return pkt['data']['value'] #return only the state value
+
         
     def analog_write(self, pin, value):
         cmd = "ANALOG.WRITE %d %d" % (pin,value)
@@ -134,5 +141,14 @@ if __name__ == "__main__":
     import glob, time
     port = glob.glob("/dev/ttyACM*")[0]
     LG = LoRaGateway(port)
+    
+    while True:
+        LG.set_LED("ON")
+        time.sleep(2)
+        LG.set_LED("OFF")
+        time.sleep(2)
+        #print LG.analog_read(3)
+        #time.sleep(10)
+
     #FIXME put test code here
     
