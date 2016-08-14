@@ -6,49 +6,56 @@ from lora_gateway import LoRaGateway
 import json
 
 parser = argparse.ArgumentParser(description='Read from serial and echomessage')
-
 parser.add_argument('-d', '--device', default=glob.glob("/dev/ttyACM*")[0], help='path to serial device')
-
 parser.add_argument('-r', '--rate', default=115200, help='rate of serial communication',type=int)
-
-parser.add_argument('-o', '--outfile', default='output.csv', help='output file')
-
+parser.add_argument('-o', '--outfilename', default='output.csv', help='output file')
 args = parser.parse_args()
 
 port = args.device
-
 rate = args.rate
-
-outfile=str(args.outfile)
+outfilename=str(args.outfilename)
 
 DELAY_TIME = 1.0
 
+# create a lora gateway object
 LG = LoRaGateway(port,rate)
-outfile = open(outfile,"w")
 
-led_state = False
+outfile = open(outfilename,"w")
+
+# the digital pin we want to read
+PIN=10
 
 try:
-    LG.digital_read(10)
+
+    # read the value of a digital pin
+    LG.digital_read(PIN)
+    
+    # wait sufficient time to get response
     time.sleep(DELAY_TIME)
+    
+    # get the response (in 'dict' format)
     pkt = LG.pkt
+    
     if not pkt is None:
+    
+        # make a local copy of pkt
         info = pkt.copy()
         
-        rssi=pkt['RSSI']
-        state=pkt['data']['state']
-        pin=pkt['data']['pin']
-        #print rssi,state,pin
+        #accessing pkt variables:
+        #rssi=pkt['RSSI']
+        #state=pkt['data']['state']
+        #pin=pkt['data']['pin']
         
+        # print json to the command line
         print json.dumps(pkt)
-        
-        #print(pkt['RSSI'],pkt['data'])
-        
-        outfile.write("{recv_timestamp},{RSSI},{data}\n".format(**info))
+       
+        # write to a local output file
+        #outfile.write("{recv_timestamp},{RSSI},{data}\n".format(**info))
+        outfile.write(json.dumps(pkt))
         outfile.flush()
+        
     else:
-        #chill out for a bit
-        time.sleep(5)
+        print 'ERROR'
 except Exception as exc:
     print "# WARNING caught exception: %s" % exc
 finally:
