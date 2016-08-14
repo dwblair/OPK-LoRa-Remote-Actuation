@@ -29,7 +29,6 @@ void pCmd_RHRD_module_setup(uint8_t this_address,
                             uint16_t timeout_millis
                             );
 
-
 void radiosleep();
 void radiowake();
 
@@ -44,3 +43,4 @@ bool pCmd_RHRD_send_callback(PacketCommand& this_pCmd);
 
 #endif /*PCMD_RHRD_RF95_MODULE_INCLUDE*/
 //******************************************************************************
+

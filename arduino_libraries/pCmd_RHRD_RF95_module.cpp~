@@ -181,13 +181,3 @@ bool pCmd_RHRD_send_callback(PacketCommand& this_pCmd){
   }
 }
 
-void radiosleep() {
-  driver_RF95.sleep();
-}
-
-void radiowake() {
-
-  driver_RF95.available();
-  
-}
-

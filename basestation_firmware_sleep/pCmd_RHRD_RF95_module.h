@@ -8,7 +8,7 @@
 #define PCMD_RHRD_RF95_MODULE_INCLUDE
 
 //uncomment for debugging messages
-//#define DEBUG
+#define DEBUG
 
 #ifdef DEBUG
   #define DEBUG_PORT Serial
@@ -28,10 +28,6 @@ void pCmd_RHRD_module_setup(uint8_t this_address,
                             unsigned int num_retries,
                             uint16_t timeout_millis
                             );
-
-
-void radiosleep();
-void radiowake();
 
 //******************************************************************************
 extern PacketShared::STATUS pCmd_status;

@@ -29,10 +29,6 @@ void pCmd_RHRD_module_setup(uint8_t this_address,
                             uint16_t timeout_millis
                             );
 
-
-void radiosleep();
-void radiowake();
-
 //******************************************************************************
 extern PacketShared::STATUS pCmd_status;
 bool pCmd_RHRD_module_proccess_input(PacketCommand& this_pCmd);

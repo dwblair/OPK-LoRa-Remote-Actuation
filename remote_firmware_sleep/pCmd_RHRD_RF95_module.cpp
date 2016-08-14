@@ -80,6 +80,17 @@ void pCmd_RHRD_module_setup(uint8_t      this_address,
   }
 }
 
+
+void radiosleep() {
+  driver_RF95.sleep();
+}
+
+void radiowake() {
+
+  driver_RF95.available();
+  
+}
+
 //******************************************************************************
 PacketShared::STATUS pCmd_status = PacketShared::SUCCESS;
 bool pCmd_RHRD_module_proccess_input(PacketCommand& this_pCmd) {
@@ -181,13 +192,4 @@ bool pCmd_RHRD_send_callback(PacketCommand& this_pCmd){
   }
 }
 
-void radiosleep() {
-  driver_RF95.sleep();
-}
-
-void radiowake() {
-
-  driver_RF95.available();
-  
-}
 
