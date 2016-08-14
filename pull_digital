@@ -31,7 +31,7 @@ try:
     LG.digital_read(PIN)
     
     # wait sufficient time to get response
-    time.sleep(DELAY_TIME)
+    #time.sleep(DELAY_TIME)
     
     # get the response (in 'dict' format)
     pkt = LG.pkt
