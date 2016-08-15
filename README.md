@@ -35,6 +35,14 @@ Try the command:
 sudo ./pull_analog_sleep
 ```
 
+### Pushing to Phant
+
+Follow the instructions [here](http://159.203.128.53/) to create your own Phant stream. Make note of the public key and private key; then edit the 'pull_analog_sleep_push_phant' script above appropriately.  Test it out with:
+
+```bash
+sudo ./pull_analog_sleep_push_phant
+```
+
 ### Known issues 
 
 - Analog read has only been tested on pins 0,1,2,7.  Other pin values may 'lock' the remote node, requiring it to be power-cycled / rebooted. 
