@@ -269,6 +269,21 @@ void LED_ON_sCmd_action_handler(SerialCommand this_sCmd) {
   }
 }
 
+
+void LED_OFF_sCmd_action_handler(SerialCommand this_sCmd) {
+  //relay command over radio
+  pCmd_RHRD.resetOutputBuffer();
+  pCmd_RHRD.setupOutputCommandByName("LED.OFF");
+  bool sentPacket;
+  pCmd_RHRD.send(sentPacket);
+  if(sentPacket){
+    Serial.print("OK\n");
+  } else{
+    Serial.print("FAIL\n");
+  }
+}
+
+
 void SLEEP_SEC_sCmd_action_handler(SerialCommand this_sCmd){
   uint16_t seconds;
   uint16_t repeats;
@@ -300,21 +315,6 @@ void SLEEP_SEC_sCmd_action_handler(SerialCommand this_sCmd){
   }
 }
 }
-
-
-void LED_OFF_sCmd_action_handler(SerialCommand this_sCmd) {
-  //relay command over radio
-  pCmd_RHRD.resetOutputBuffer();
-  pCmd_RHRD.setupOutputCommandByName("LED.OFF");
-  bool sentPacket;
-  pCmd_RHRD.send(sentPacket);
-  if(sentPacket){
-    Serial.print("OK\n");
-  } else{
-    Serial.print("FAIL\n");
-  }
-}
-
 
 // This gets set as the default handler, and gets called when no other command matches.
 void UNRECOGNIZED_sCmd_handler(SerialCommand this_sCmd) {

@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
+DEBUG = False
+
 import argparse
 import time, glob
 from lora_gateway import LoRaGateway
 import json
 
-
-parser = argparse.ArgumentParser(description='Read from serial and echomessage')
+parser = argparse.ArgumentParser(description='Repeatedly read in analog value from remote node analog pin, and print json-formatted text to std_out.  Sleep in between reads for sleep_seconds*sleep_iterations seconds.  Also logs output to outfilename.json')
 parser.add_argument('-d', '--device', default=glob.glob("/dev/ttyACM*")[0], help='path to serial device')
 parser.add_argument('-r', '--rate', default=115200, help='rate of serial communication',type=int)
 parser.add_argument('-o', '--outfilename', default='output.csv', help='output file')
@@ -19,14 +20,10 @@ args = parser.parse_args()
 port = args.device
 rate = args.rate
 PIN=args.pin
-
 outfilename=str(args.outfilename)
-
-SLEEP_SECONDS=(int) (args.sleep_seconds)
-
-REPEATS=(int) (args.sleep_iterations)
-
-DELAY_TIME=(int) (SLEEP_SECONDS*REPEATS)
+sleep_seconds=int(args.sleep_seconds)
+repeats=int(args.sleep_iterations)
+delay_time=int(sleep_seconds*repeats)
 
 # create a lora gateway object
 LG = LoRaGateway(port,rate)
@@ -50,12 +47,17 @@ while True:
             # write to a local output file
             outfile.write(json.dumps(pkt))
             outfile.flush()
+            
         else:
             print 'ERROR'
             
-        # go to sleep 
-        LG.set_sleep(SLEEP_SECONDS,REPEATS)
-        time.sleep(DELAY_TIME+2) # give a 2 second buffer 
+        # put remote node to sleep
+        LG.set_sleep(sleep_seconds,repeats)
+        
+        if (DEBUG):
+            print "# sleeping for "+str(delay_time)+" seconds ..."
+        
+        time.sleep(delay_time+2) # give a 2 second buffer 
         
     except Exception as exc:
         print "# WARNING caught exception: %s" % exc

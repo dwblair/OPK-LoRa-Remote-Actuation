@@ -502,7 +502,9 @@ void SLEEP_SEC_pCmd_action_handler(PacketCommand& this_pCmd) {
   
   radiowake(); 
 
-  for (int i=0;i< (uint16_t) seconds; i++) {
+
+  // show that we're awake
+  for (int i=0;i< 3; i++) {
    digitalWrite(LED_pin, HIGH);
   delay(100);
   digitalWrite(LED_pin, LOW);     // default to LED off
