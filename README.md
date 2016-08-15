@@ -19,8 +19,9 @@
 
 Try the command:
 
-> sudo ./blink_led
-
+```bash 
+sudo ./blink_led
+``` 
 
 ### Analog readings
 
