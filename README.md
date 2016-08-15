@@ -27,4 +27,6 @@ sudo ./blink_led
 
 Try the command:
 
-> sudo ./pull_analog_sleep
+```bash
+sudo ./pull_analog_sleep
+```
