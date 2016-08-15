@@ -130,6 +130,10 @@ class LoRaGateway(object):
         cmd = "LED.%s" % state
         self._send_command(cmd)
         
+    def set_sleep(self,seconds,repeats):
+        cmd = "SLEEP.SEC %d %d" % (seconds,repeats)
+        self._send_command(cmd)
+        
     def get_LED(self):
         cmd = "LED?"
         pkt = self._yaml_query(cmd)

@@ -39,14 +39,6 @@ try:
     pkt = LG.pkt
     
     if not pkt is None:
-    
-        # make a local copy of pkt
-        info = pkt.copy()
-        
-        #accessing pkt variables:
-        #rssi=pkt['RSSI']
-        #state=pkt['data']['state']
-        #pin=pkt['data']['pin']
         
         # print json to the command line
         print json.dumps(pkt)

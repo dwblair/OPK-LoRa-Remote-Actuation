@@ -1,0 +1,68 @@
+#!/usr/bin/env python
+
+import argparse
+import time, glob
+from lora_gateway import LoRaGateway
+import json
+
+
+parser = argparse.ArgumentParser(description='Read from serial and echomessage')
+parser.add_argument('-d', '--device', default=glob.glob("/dev/ttyACM*")[0], help='path to serial device')
+parser.add_argument('-r', '--rate', default=115200, help='rate of serial communication',type=int)
+parser.add_argument('-o', '--outfilename', default='output.csv', help='output file')
+parser.add_argument('-p', '--pin', default=0, help='the analog pin we want to measure',type=int)
+parser.add_argument('-s', '--sleep_seconds', default=5, help='number of seconds to sleep',type=int)
+parser.add_argument('-i', '--sleep_iterations', default=1, help='number of times to repeat sleep_seconds sleep interval before waking',type=int)
+
+args = parser.parse_args()
+
+port = args.device
+rate = args.rate
+PIN=args.pin
+
+outfilename=str(args.outfilename)
+
+SLEEP_SECONDS=(int) (args.sleep_seconds)
+
+REPEATS=(int) (args.sleep_iterations)
+
+DELAY_TIME=(int) (SLEEP_SECONDS*REPEATS)
+
+# create a lora gateway object
+LG = LoRaGateway(port,rate)
+
+while True:
+    try:
+
+        outfile = open(outfilename,"w")
+        
+        # read the value of a digital pin
+        LG.analog_read(PIN)
+        
+        # get the response (in 'dict' format)
+        pkt = LG.pkt
+        
+        if not pkt is None:
+            
+            # print json to the command line
+            print json.dumps(pkt)
+           
+            # write to a local output file
+            outfile.write(json.dumps(pkt))
+            outfile.flush()
+        else:
+            print 'ERROR'
+            
+        # go to sleep 
+        LG.set_sleep(SLEEP_SECONDS,REPEATS)
+        time.sleep(DELAY_TIME+2) # give a 2 second buffer 
+        
+    except Exception as exc:
+        print "# WARNING caught exception: %s" % exc
+    finally:
+        outfile.close()
+        
+       
+    
+    
+
