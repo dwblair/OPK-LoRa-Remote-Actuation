@@ -35,7 +35,7 @@ Try the command:
 sudo ./pull_analog_sleep
 ```
 
-## Known issues 
+### Known issues 
 
 - Analog read has only been tested on pins 0,1,2,7.  Other pin values may 'lock' the remote node, requiring it to be power-cycled / rebooted. 
 
