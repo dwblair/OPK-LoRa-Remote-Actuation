@@ -13,7 +13,11 @@
 ### Permissions
 
 - Set file permissions so that 'blink_led' and 'pull_analog_sleep' are executable
-- On Linux this can be done via 'chmod 755 filename'
+- On Linux this can be done via:
+
+```
+chmod 755 filename
+```
  
 ### Blinking LED
 
