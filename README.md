@@ -43,6 +43,7 @@ Follow the instructions [here](http://159.203.128.53/) to create your own Phant 
 sudo ./pull_analog_sleep_push_phant
 ```
 
+Example phant graphs are [here](https://dwblair.github.io/OPK-LoRa-Remote-Actuation/phant_graph.html) and [here](http://pvos.org/phant_graph.html).
 ### Known issues 
 
 - Analog read has only been tested on pins 0,1,2,7.  Other pin values may 'lock' the remote node, requiring it to be power-cycled / rebooted. 
