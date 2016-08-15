@@ -1,0 +1,46 @@
+#!/usr/bin/env python
+
+DEBUG = False
+
+import argparse
+import time, glob
+from lora_gateway import LoRaGateway
+import json
+
+parser = argparse.ArgumentParser(description='Repeatedly read in analog value from remote node analog pin, and print json-formatted text to std_out.  Sleep in between reads for sleep_seconds*sleep_iterations seconds.  Also logs output to outfilename.json')
+parser.add_argument('-d', '--device', default=glob.glob("/dev/ttyACM*")[0], help='path to serial device')
+parser.add_argument('-r', '--rate', default=115200, help='rate of serial communication',type=int)
+parser.add_argument('-s', '--delay_seconds', default=5, help='number of seconds to sleep',type=int)
+
+args = parser.parse_args()
+
+port = args.device
+rate = args.rate
+
+delay_seconds=int(args.delay_seconds)
+
+# create a lora gateway object
+LG = LoRaGateway(port,rate)
+
+while True:
+    try:
+
+        print "Turning LED on for " + str(delay_seconds) + " seconds"
+        
+        LG.set_LED("ON")
+        
+        time.sleep(delay_seconds)
+        
+        print "Turning LED off for " + str(delay_seconds) + " seconds"
+        
+        LG.set_LED("OFF")
+        
+        time.sleep(delay_seconds)
+     
+    except Exception as exc:
+        print "# WARNING caught exception: %s" % exc
+        
+       
+    
+    
+
